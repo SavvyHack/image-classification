@@ -3,13 +3,13 @@
 # -----------------------------
 
 from pathlib import Path
+import json
 import time
 import warnings
 
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from PIL import Image
 
 from sklearn.dummy import DummyClassifier
 from sklearn.ensemble import RandomForestClassifier
@@ -34,13 +34,12 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 # Set folder paths
 # -----------------------------
 
-BASE_DIR     = Path(__file__).resolve().parent
-DATA_DIR     = BASE_DIR / "task1_data"
-OUT_DIR      = BASE_DIR / "outputs"
-FIG_DIR      = BASE_DIR / "figures"
-MISCLASS_DIR = FIG_DIR / "misclassified_examples"
-CNN_PATH     = OUT_DIR / "cnn_features.csv"
-EXTRA_PATH   = OUT_DIR / "extra_features.csv"
+BASE_DIR   = Path(__file__).resolve().parent
+DATA_DIR   = BASE_DIR / "task2_data"
+OUT_DIR    = BASE_DIR / "outputs"
+FIG_DIR    = BASE_DIR / "figures"
+CNN_PATH   = OUT_DIR / "cnn_features_task2.csv"
+EXTRA_PATH = OUT_DIR / "extra_features_task2.csv"
 
 
 # -----------------------------
@@ -62,7 +61,7 @@ PROVIDED_FILES = {"color":      "color_histogram.csv",
 
 
 def load_data():
-    """Load metadata and available feature files for Task 1."""
+    """Load metadata and available feature files for Task 2."""
 
     # Load train and test metadata
     tr = pd.read_csv(DATA_DIR / "train_metadata.csv")
@@ -77,7 +76,7 @@ def load_data():
             feats[name] = pd.read_csv(path)
             print(f"  {name} features: {feats[name].shape[1] - 1} dims")
         else:
-            print(f"  {name} features missing -- run extract_{name}_features.py")
+            print(f"  {name} features missing -- run extract_{name}_features_task2.py")
 
     return tr, te, feats
 
@@ -124,7 +123,7 @@ def model_grids():
 
     # Define the real models and the hyperparameters to test
     return {
-        "logreg": (_pipe(LogisticRegression(max_iter=3000, solver="lbfgs",
+        "logreg": (_pipe(LogisticRegression(max_iter=2000,
                                             random_state=RANDOM_STATE)),
                    {"clf__C": [0.01, 0.1, 1, 10]}),
         "svm_rbf": (_pipe(SVC(kernel="rbf", random_state=RANDOM_STATE)),
@@ -181,7 +180,7 @@ def plot_confusion(cm, labels, title, savepath):
     cm_n = cm / cm.sum(axis=1, keepdims=True)
 
     # Create the confusion matrix figure
-    fig, ax = plt.subplots(figsize=(8, 7))
+    fig, ax = plt.subplots(figsize=(9, 8))
     im = ax.imshow(cm_n, vmin=0, vmax=1)
 
     # Add class labels to both axes
@@ -211,14 +210,14 @@ def plot_accuracy_bars(df, savepath):
     df = df.sort_values("accuracy", ascending=False)
 
     # Create the accuracy comparison bar chart
-    fig, ax = plt.subplots(figsize=(11, 6))
+    fig, ax = plt.subplots(figsize=(12, 5))
     ax.bar(range(len(df)), df["accuracy"])
 
     # Label the chart
     ax.set_xticks(range(len(df)))
-    ax.set_xticklabels(df["combo"], rotation=60, ha="right")
+    ax.set_xticklabels(df["combo"], rotation=45, ha="right")
     ax.set_ylabel("Cross-validation accuracy")
-    ax.set_title("Task 1 model and feature comparison")
+    ax.set_title("Task 2 model and feature comparison")
 
     # Save the figure to disk
     plt.tight_layout(); plt.savefig(savepath, dpi=150); plt.close()
@@ -238,75 +237,39 @@ def save_clf_report(y_true, y_pred, names, row, savepath):
                                       target_names=names, digits=3))
 
 
-def top_confusions(cm, names, k=3):
-    """Return the largest off-diagonal confusion pairs."""
+def top_confused_pairs(cm, names, k=10):
+    """Return the most common off-diagonal confusion pairs."""
 
     # Store all cases where the true class and predicted class are different
-    pairs = [{"true_id": i, "pred_id": j,
-              "true_name": names[i], "pred_name": names[j],
-              "count": int(cm[i, j])}
-             for i in range(cm.shape[0]) for j in range(cm.shape[1])
+    pairs = [{"true":             names[i],
+              "predicted":        names[j],
+              "count":            int(cm[i, j]),
+              "recall_lost_frac": cm[i, j] / max(cm[i].sum(), 1)}
+             for i in range(len(names)) for j in range(len(names))
              if i != j and cm[i, j] > 0]
 
     # Return the most common mistakes
-    return sorted(pairs, key=lambda p: p["count"], reverse=True)[:k]
-
-
-def save_misclassified(tr_meta, y_true, y_pred, names, model_name,
-                       max_pairs=3, max_per_pair=6):
-    """Save image grids for the most common misclassification pairs."""
-
-    # Build a confusion matrix for this model
-    cm = confusion_matrix(y_true, y_pred)
-
-    # Create a folder for this model's misclassified examples
-    out_dir = MISCLASS_DIR / model_name
-    out_dir.mkdir(parents=True, exist_ok=True)
-
-    # Save image examples for each major confusion pair
-    for pair in top_confusions(cm, names, k=max_pairs):
-        mask     = (y_true == pair["true_id"]) & (y_pred == pair["pred_id"])
-        examples = tr_meta.loc[mask].head(max_per_pair)
-
-        if examples.empty:
-            continue
-
-        # Create one row of example images
-        n = len(examples)
-        fig, axes = plt.subplots(1, n, figsize=(2.2 * n, 2.5))
-        axes = np.atleast_1d(axes)
-
-        # Add each misclassified image to the grid
-        for ax, row in zip(axes, examples.itertuples(index=False)):
-            ax.imshow(Image.open(DATA_DIR / row.image_path).convert("RGB"))
-            ax.axis("off"); ax.set_title(str(row.image_id), fontsize=8)
-
-        # Save the image grid to disk
-        fig.suptitle(f"True {pair['true_name']} predicted {pair['pred_name']}")
-        plt.tight_layout()
-        fname = (f"true_{pair['true_name']}_pred_{pair['pred_name']}.png"
-                 .replace(" ", "_").replace("/", "_"))
-        plt.savefig(out_dir / fname, dpi=150); plt.close()
+    return pd.DataFrame(sorted(pairs, key=lambda p: p["count"], reverse=True)[:k])
 
 
 def main():
-    """Run the full Task 1 model comparison and final prediction pipeline."""
+    """Run the full Task 2 model comparison and final prediction pipeline."""
 
     # Create output folders if they do not already exist
     OUT_DIR.mkdir(exist_ok=True)
     FIG_DIR.mkdir(exist_ok=True)
-    MISCLASS_DIR.mkdir(parents=True, exist_ok=True)
 
     # Load metadata and feature files
     tr_meta, te_meta, feats = load_data()
 
     # Extract labels and class names
-    y      = tr_meta["class_id"].values
-    names  = (tr_meta.drop_duplicates("class_id")
-                     .sort_values("class_id")["class_name"].tolist())
+    y     = tr_meta["class_id"].values
+    names = (tr_meta.drop_duplicates("class_id")
+                    .sort_values("class_id")["class_name"].tolist())
 
     # Print basic dataset information
-    print(f"\nClasses: {names}\nTrain: {len(tr_meta)}  Test: {len(te_meta)}\n")
+    print(f"\nClasses ({len(names)}): {names}")
+    print(f"Train: {len(tr_meta)}  Test: {len(te_meta)}\n")
 
     # Create feature-set combinations, model grids, and cross-validation folds
     feature_sets = make_feature_sets(feats)
@@ -330,13 +293,15 @@ def main():
             r  = grid_search_eval(X, y, est, grid, cv)
 
             print(f"  {m_name:18s} acc={r['accuracy']:.4f} "
-                  f"macroF1={r['macro_f1']:.4f}  ({time.time()-t0:.1f}s)")
+                  f"macroF1={r['macro_f1']:.4f}  ({time.time()-t0:.1f}s) "
+                  f"best={r['best_params']}")
 
             # Save this run's summary results
-            results.append({"features": feat, "model": m_name,
-                            "accuracy": r["accuracy"],
-                            "macro_f1": r["macro_f1"],
-                            "best_params": r["best_params"]})
+            results.append({"features":    feat,
+                            "model":       m_name,
+                            "accuracy":    r["accuracy"],
+                            "macro_f1":    r["macro_f1"],
+                            "best_params": json.dumps(r["best_params"])})
 
             # Save the best fitted estimator for later out-of-fold predictions
             fitted[(feat, m_name)] = r["estimator"]
@@ -344,8 +309,11 @@ def main():
         # Evaluate and save the dummy baseline for the same feature set
         d = dummy_eval(X, y, cv)
         print(f"  {'dummy':18s} acc={d['accuracy']:.4f}")
-        results.append({"features": feat, "model": "dummy_most_frequent",
-                        **d})
+        results.append({"features":    feat,
+                        "model":       "dummy_most_frequent",
+                        "accuracy":    d["accuracy"],
+                        "macro_f1":    d["macro_f1"],
+                        "best_params": json.dumps({})})
         print()
 
     # Convert results into a sorted dataframe
@@ -354,8 +322,8 @@ def main():
                 .reset_index(drop=True))
 
     # Save all cross-validation results and the accuracy comparison chart
-    res_df.to_csv(OUT_DIR / "cv_results.csv", index=False)
-    plot_accuracy_bars(res_df, FIG_DIR / "accuracy_comparison.png")
+    res_df.to_csv(OUT_DIR / "cv_results_task2.csv", index=False)
+    plot_accuracy_bars(res_df, FIG_DIR / "accuracy_comparison_task2.png")
 
     print("\nCross-validation results:")
     print(res_df.to_string(index=False))
@@ -368,7 +336,7 @@ def main():
         return cross_val_predict(fitted[(feat, m_name)], X, y,
                                  cv=cv, n_jobs=-1)
 
-    # Save reports, confusion matrices, and error examples for each main model
+    # Save reports and confusion matrices for each main model
     for m_name in MAIN_MODELS:
         sub = res_df[res_df["model"] == m_name]
 
@@ -381,13 +349,12 @@ def main():
         # Generate out-of-fold predictions only for the model being analysed
         y_pred = oof_predict(row["features"], m_name)
 
-        # Save confusion matrix, classification report, and misclassified examples
+        # Save confusion matrix and classification report
         plot_confusion(confusion_matrix(y, y_pred), names,
                        title=f"{m_name}: {row['features']}",
-                       savepath=FIG_DIR / f"confusion_{m_name}.png")
+                       savepath=FIG_DIR / f"confusion_{m_name}_task2.png")
         save_clf_report(y, y_pred, names, row,
-                        OUT_DIR / f"classification_report_{m_name}.txt")
-        save_misclassified(tr_meta, y, y_pred, names, m_name)
+                        OUT_DIR / f"classification_report_{m_name}_task2.txt")
 
     # Select the best overall model and feature set
     best = res_df.iloc[0]
@@ -395,15 +362,23 @@ def main():
     print("\nBest overall configuration:")
     print(best)
 
-    # Save the headline confusion matrix and report for the best real model
+    # Save the headline confusion matrix, report, and confused-pairs table
     if best["model"] in MAIN_MODELS:
         y_pred_best = oof_predict(best["features"], best["model"])
+        cm_best     = confusion_matrix(y, y_pred_best)
 
-        plot_confusion(confusion_matrix(y, y_pred_best), names,
+        plot_confusion(cm_best, names,
                        title=f"Best: {best['features']} + {best['model']}",
-                       savepath=FIG_DIR / "confusion_matrix_best.png")
+                       savepath=FIG_DIR / "confusion_matrix_best_task2.png")
         save_clf_report(y, y_pred_best, names, best,
-                        OUT_DIR / "classification_report_best.txt")
+                        OUT_DIR / "classification_report_best_task2.txt")
+
+        # Save the most common confused class pairs
+        pairs_df = top_confused_pairs(cm_best, names, k=10)
+        pairs_df.to_csv(OUT_DIR / "top_confused_pairs_task2.csv", index=False)
+
+        print("\nTop confused pairs for best configuration:")
+        print(pairs_df.to_string(index=False))
 
     # Build final train and test matrices using the best feature set
     groups  = feature_sets[best["features"]]
@@ -416,7 +391,7 @@ def main():
                                 random_state=RANDOM_STATE)
     else:
         final = grids[best["model"]][0]
-        final.set_params(**best["best_params"])
+        final.set_params(**json.loads(best["best_params"]))
 
     # Train on the full labelled training set
     final.fit(X_train, y)
@@ -424,9 +399,9 @@ def main():
     # Save predictions in Kaggle submission format
     pd.DataFrame({"image_id": te_meta["image_id"].values,
                   "class_id": final.predict(X_test)}
-                 ).to_csv(OUT_DIR / "task1_submission.csv", index=False)
+                 ).to_csv(OUT_DIR / "task2_submission.csv", index=False)
 
-    print(f"\nSaved final submission: {OUT_DIR / 'task1_submission.csv'}")
+    print(f"\nSaved final submission: {OUT_DIR / 'task2_submission.csv'}")
 
 
 # -----------------------------
