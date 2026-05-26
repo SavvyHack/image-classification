@@ -1,26 +1,21 @@
 """
-train_task1.py
---------------
-Train and evaluate models on Task 1 (coarse-grained animal classification).
-
+Train and evaluate models on Task 1.
 Pipeline:
-  1. Load provided features (color hist, HOG-PCA, additional) plus, if
-     present, CNN features extracted by extract_cnn_features.py.
+  1. Load provided features (color hist, HOG-PCA, additional) plus,
+     CNN features extracted by extract_cnn_features.py.
   2. Standardise each feature group.
-  3. 5-fold stratified cross-validation across multiple (feature, model)
-     combinations -- reporting accuracy and macro-F1.
+  3. 5-fold stratified cross-validation across multiple (feature, model) combinations
   4. Refit the best (feature, model) combination on all training data and
-     produce a Kaggle submission CSV.
+     produce a submission CSV.
   5. Save a confusion matrix figure for the best config.
 
-Models used (3 distinct algorithms, per the solo-project spec):
+Models used 3 distinct algorithms:
   - Logistic Regression (multinomial, linear)
   - Support Vector Machine, RBF kernel (non-linear, kernel-based)
   - Random Forest (ensemble of decision trees)
 
 These three were chosen because they sit in different model families with
-different inductive biases -- enabling a substantive comparison in the
-report rather than tweaking hyperparameters of a single algorithm.
+different inductive biases
 """
 
 import os
@@ -132,7 +127,6 @@ def main():
 
     # Feature subsets to compare. We always run "provided" as a baseline,
     # and conditionally add subsets that use the extra hand-crafted features
-    # (LBP + HSV) and the CNN embeddings if they were extracted.
     feature_sets = {
         "provided": ["color", "hog", "additional"],
     }
@@ -150,7 +144,7 @@ def main():
     print(f"Train: {len(y_train)}   Test: {len(te_meta)}\n")
 
     results = []
-    fold_preds = {}     # keep best fold predictions for confusion matrix
+    fold_preds = {}
 
     for feat_name, subset in feature_sets.items():
         X = build_matrices(tr_meta, feats, subset)
@@ -196,7 +190,7 @@ def main():
         f.write(rpt)
     print(rpt)
 
-    # ---- Refit on full training data, predict on test, write Kaggle submission
+    # ---- Refit on full training data, predict on test
     print("Refitting on full training data and predicting on test set...")
     X_train_full = build_matrices(tr_meta, feats, best_subset)
     X_test       = build_matrices(te_meta, feats, best_subset)

@@ -1,17 +1,10 @@
 """
-extract_cnn_features.py
------------------------
-Extract 512-dim feature embeddings from a pretrained ResNet-18 (ImageNet
-weights) for every image in Task 1.
+Extract 512-dim feature embeddings from a pretrained ResNet-18 for every image in Task 1.
 
-We use a model pretrained on ImageNet ONLY (not CIFAR-10 or CUB-200), which
-the spec explicitly permits. The classifier head is removed; we take the
-output of the global-average-pooling layer (one of the standard choices for
-feature extraction). Images are upsampled from 64x64 to 224x224 to match
+We use a model pretrained on ImageNet. The classifier head is removed and we take the
+output of the global-average-pooling layer. Images are upsampled from 64x64 to 224x224 to match
 the input size the network was trained on, and normalised with ImageNet
 mean/std.
-
-Outputs:  outputs/cnn_features.csv  (image_id, cnn_0, ..., cnn_511)
 """
 import os
 import time
@@ -26,9 +19,7 @@ DATA_DIR  = "task1_data"
 OUT_PATH  = "outputs/cnn_features.csv"
 BATCH     = 64
 
-# ImageNet preprocessing: resize -> normalise. Upsampling 64x64 to 224x224 is
-# the standard move for small inputs; the network's filters were learned on
-# 224x224 imagery so we feed it what it expects.
+# ImageNet preprocessing: resize and normalise.
 preprocess = transforms.Compose([
     transforms.Resize(224),
     transforms.ToTensor(),
