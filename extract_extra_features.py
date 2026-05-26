@@ -27,8 +27,8 @@ from PIL import Image
 from skimage import color
 from skimage.feature import local_binary_pattern
 
-DATA_DIR = "/home/claude/task1_data"
-OUT_PATH = "/home/claude/project/outputs/extra_features.csv"
+DATA_DIR = "task1_data"
+OUT_PATH = "outputs/extra_features.csv"
 
 # LBP settings -- uniform LBP with P=8 sample points, radius=1.
 # 'uniform' LBP gives P+2 distinct labels (P uniform patterns + 1 non-uniform).

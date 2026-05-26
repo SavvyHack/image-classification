@@ -22,8 +22,8 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import models, transforms
 from PIL import Image
 
-DATA_DIR  = "/home/claude/task1_data"
-OUT_PATH  = "/home/claude/project/outputs/cnn_features.csv"
+DATA_DIR  = "task1_data"
+OUT_PATH  = "outputs/cnn_features.csv"
 BATCH     = 64
 
 # ImageNet preprocessing: resize -> normalise. Upsampling 64x64 to 224x224 is

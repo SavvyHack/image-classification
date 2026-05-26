@@ -42,9 +42,9 @@ from sklearn.metrics        import (accuracy_score, f1_score,
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
 
-DATA_DIR = "/home/claude/task1_data"
-OUT_DIR  = "/home/claude/project/outputs"
-FIG_DIR  = "/home/claude/project/figures"
+DATA_DIR = "task1_data"
+OUT_DIR  = "outputs"
+FIG_DIR  = "figures"
 CNN_PATH   = os.path.join(OUT_DIR, "cnn_features.csv")
 EXTRA_PATH = os.path.join(OUT_DIR, "extra_features.csv")
 
@@ -119,7 +119,7 @@ def cv_evaluate(X, y, model_name, model, n_splits=5):
 
 
 # ---------------------------------------------------------------------------
-# 4. Main experiment
+# 4. Main
 # ---------------------------------------------------------------------------
 def main():
     os.makedirs(OUT_DIR, exist_ok=True)
