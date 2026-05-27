@@ -396,7 +396,7 @@ def main():
     # Train on the full labelled training set
     final.fit(X_train, y)
 
-    # Save predictions in Kaggle submission format
+    # Save predictions in submission format
     pd.DataFrame({"image_id": te_meta["image_id"].values,
                   "class_id": final.predict(X_test)}
                  ).to_csv(OUT_DIR / "task2_submission.csv", index=False)
