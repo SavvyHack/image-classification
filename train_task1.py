@@ -429,6 +429,41 @@ def main():
     print(f"\nSaved final submission: {OUT_DIR / 'task1_submission.csv'}")
 
 
+    # -----------------------------
+    # Save per-model Kaggle submissions
+    # -----------------------------
+ 
+    # For each of the three main models, train on its own best feature set
+    # using its tuned hyperparameters and write a separate Kaggle submission.
+    # Naming pattern: task1_submission_<modelname>.csv
+    for m_name in MAIN_MODELS:
+        sub = res_df[res_df["model"] == m_name]
+ 
+        if sub.empty:
+            continue
+ 
+        # This model's best row (res_df is sorted by accuracy descending, so
+        # iloc[0] of the filtered subset is this model's top-scoring run)
+        m_row    = sub.iloc[0]
+        m_groups = feature_sets[m_row["features"]]
+ 
+        # Build train and test matrices using this model's best feature set
+        X_train_m = build_matrix(tr_meta, feats, m_groups)
+        X_test_m  = build_matrix(te_meta, feats, m_groups)
+ 
+        # Recreate this model's pipeline and apply its tuned hyperparameters
+        model_m = grids[m_name][0]
+        model_m.set_params(**m_row["best_params"])
+        model_m.fit(X_train_m, y)
+ 
+        # Save predictions in Kaggle submission format
+        sub_path = OUT_DIR / f"task1_submission_{m_name}.csv"
+        pd.DataFrame({"image_id": te_meta["image_id"].values,
+                      "class_id": model_m.predict(X_test_m)}
+                     ).to_csv(sub_path, index=False)
+ 
+        print(f"Saved {m_name} submission: {sub_path}")
+
 # -----------------------------
 # Run the script
 # -----------------------------

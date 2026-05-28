@@ -8,7 +8,7 @@ This will run task 1 in its entirety. This should output results into the termin
 extract_cnn_features_task1.py will output cnn_features.csv
 extract_extra_features_task1.py will output extra_features.csv
 train_task1.py will output the classification reports for all three models and the best option in classification_report_(best/logreg/rf/svm_rbf).txt
-It will also output all the Cross validation results for the models in cv_results.csv, as well as the Kaggle format submisson in task1_submission.csv
+It will also output all the Cross validation results for the models in cv_results_task1.csv, as well as the Kaggle format submisson for all three models as task1_submission_(modelname).csv, with the best model being outputted in task1_submission.csv
 In a different folder in the same drectory called figures, train_task1.py will output accuracy_comparison.png, confusion_logreg.png, confusion_matrix_best.png, confusion_rf.png and confusion_svm_sbf.png
 
 To run the task 2 code, run:
@@ -19,6 +19,6 @@ This will run task 2 in its entirety. This should output results into the termin
 extract_cnn_features_task2.py will output cnn_features_task2.csv
 extract_extra_features_task2.py will output extra_features_task2.csv
 train_task2.py will output the classification reports for all three models and the best option in classification_report_(best/logreg/rf/svm_rbf)_task2.txt
-It will also output all the Cross validation results for the models in cv_results_task2.csv, as well as the Kaggle format submisson in task2_submission.csv
+It will also output all the Cross validation results for the models in cv_results_task2.csv, as well as the Kaggle format submisson for all three models as task2_submission_(modelname).csv, with the best model being outputted in task2_submission.csv
 In a different folder in the same drectory called figures, train_task2.py will output accuracy_comparison_task2.png, confusion_logreg.png_task2, confusion_matrix_best_task2.png, confusion_rf_task2.png and confusion_svm_sbf_task2.png
 
